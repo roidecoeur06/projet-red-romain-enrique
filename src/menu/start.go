@@ -20,13 +20,13 @@ const title = `████████    ██            ██████ 
 func Start() {
 	reader := bufio.NewReader(os.Stdin)
 
-	fmt.Println(title)
+	fmt.Printf("\033[32m%s\033[0m\n", title)
 	fmt.Println()
-	fmt.Println()
-	fmt.Println("1. ALLER A LA TABLE")
-	fmt.Println("2. ACHETER DES JETONS / VENDRE LES JETONS")
-	fmt.Println("3. LES REGLES")
-	fmt.Println("4. QUITTER")
+	fmt.Println("1. \033[31mALLER A LA TABLE\033[0m")
+	fmt.Println("2. \033[31mACHETER DES JETONS / VENDRE LES JETONS\033[0m")
+	fmt.Println("3. \033[31mLES REGLES\033[0m")
+	fmt.Println("4. \033[31mCHOIX DU PERSONNAGE\033[0m")
+	fmt.Println("5. \033[31mQUITTER\033[0m")
 	fmt.Println()
 	fmt.Print("QUE VOULEZ VOUS FAIRE : ")
 
