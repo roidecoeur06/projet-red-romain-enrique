@@ -1,1 +1,1 @@
-salut bb
+package main
