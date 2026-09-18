@@ -4,6 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
+
+	"blackjack/src/player"
 )
 
 const title = `████████    ██            ██████      ██████    ██      ██      ██████    ██████      ██████    ██      ██
@@ -35,4 +39,8 @@ func Start() {
 		return
 	}
 
+	choice, err := strconv.Atoi(strings.TrimSpace(input))
+	if err == nil && choice == 4 {
+		player.ChooseCharacter(reader)
+	}
 }
