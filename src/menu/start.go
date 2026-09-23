@@ -26,6 +26,7 @@ func Start() {
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
+		clearTerminal()
 		fmt.Printf("\033[32m%s\033[0m\n", title)
 		fmt.Println()
 		fmt.Println("1. \033[31mALLER A LA TABLE\033[0m")
@@ -58,4 +59,8 @@ func Start() {
 			fmt.Println("Cette fonctionnalite arrive bientot.")
 		}
 	}
+}
+
+func clearTerminal() {
+	fmt.Print("\033[2J\033[3J\033[H")
 }

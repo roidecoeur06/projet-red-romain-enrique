@@ -8,6 +8,8 @@ import (
 )
 
 func Start(reader *bufio.Reader) {
+	fmt.Print("\033[2J\033[3J\033[H")
+
 	for {
 		fmt.Println()
 		fmt.Println("====================================")
@@ -37,6 +39,7 @@ func Start(reader *bufio.Reader) {
 			_, _ = reader.ReadString('\n')
 			return
 		case 2:
+			fmt.Print("\033[2J\033[3J\033[H")
 			return
 		default:
 			fmt.Println("Choix invalide.")
