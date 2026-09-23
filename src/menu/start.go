@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	coins "blackjack/src/jeton"
+	"blackjack/src/overlay"
 	"blackjack/src/player"
 	"blackjack/src/regles"
 	table "blackjack/src/table"
@@ -37,6 +38,7 @@ func Start() {
 		fmt.Println("4. \033[31mCHOIX DU PERSONNAGE\033[0m")
 		fmt.Println("5. \033[31mQUITTER\033[0m")
 		fmt.Println()
+		overlay.PrintCashOverlay()
 		fmt.Print("QUE VOULEZ VOUS FAIRE : ")
 
 		input, err := reader.ReadString('\n')
