@@ -7,6 +7,43 @@ import (
 	"strings"
 )
 
+const StartingMoney = 100000
+
+var wallet = Wallet{Argent: StartingMoney, Jetons: 0}
+
+type Wallet struct {
+	Argent int
+	Jetons int
+}
+
+func GetWallet() Wallet {
+	return wallet
+}
+
+func (w *Wallet) AcheterJetons(nombre int) bool {
+	if nombre <= 0 {
+		return false
+	}
+	if w.Argent < nombre {
+		return false
+	}
+	w.Argent -= nombre
+	w.Jetons += nombre
+	return true
+}
+
+func (w *Wallet) VendreJetons(nombre int) bool {
+	if nombre <= 0 {
+		return false
+	}
+	if w.Jetons < nombre {
+		return false
+	}
+	w.Jetons -= nombre
+	w.Argent += nombre
+	return true
+}
+
 func Start(reader *bufio.Reader) {
 	for {
 		fmt.Print("\033[2J\033[3J\033[H")
@@ -22,6 +59,7 @@ func Start(reader *bufio.Reader) {
 		fmt.Println("2. Vendre des jetons")
 		fmt.Println("3. Retour au menu")
 		fmt.Println("====================================")
+		fmt.Printf("ARGENT : %d | JETONS : %d\n", wallet.Argent, wallet.Jetons)
 		fmt.Print("QUE VOULEZ VOUS FAIRE : ")
 
 		input, err := reader.ReadString('\n')
@@ -37,12 +75,40 @@ func Start(reader *bufio.Reader) {
 
 		switch choice {
 		case 1:
-			fmt.Println("Vous avez choisi d'acheter des jetons.")
+			fmt.Print("Combien de jetons souhaitez-vous acheter ? : ")
+			amountInput, err := reader.ReadString('\n')
+			if err != nil {
+				return
+			}
+			amount, err := strconv.Atoi(strings.TrimSpace(amountInput))
+			if err != nil || amount <= 0 {
+				fmt.Println("Montant invalide.")
+				continue
+			}
+			if wallet.AcheterJetons(amount) {
+				fmt.Printf("Achat de %d jetons effectue.\n", amount)
+			} else {
+				fmt.Println("Solde insuffisant pour acheter ces jetons.")
+			}
 			fmt.Println("Appuyez sur Entrée pour revenir au menu.")
 			_, _ = reader.ReadString('\n')
 			return
 		case 2:
-			fmt.Println("Vous avez choisi de vendre des jetons.")
+			fmt.Print("Combien de jetons souhaitez-vous vendre ? : ")
+			amountInput, err := reader.ReadString('\n')
+			if err != nil {
+				return
+			}
+			amount, err := strconv.Atoi(strings.TrimSpace(amountInput))
+			if err != nil || amount <= 0 {
+				fmt.Println("Montant invalide.")
+				continue
+			}
+			if wallet.VendreJetons(amount) {
+				fmt.Printf("Vente de %d jetons effectuee.\n", amount)
+			} else {
+				fmt.Println("Vous n'avez pas assez de jetons pour vendre cette quantite.")
+			}
 			fmt.Println("Appuyez sur Entrée pour revenir au menu.")
 			_, _ = reader.ReadString('\n')
 			return

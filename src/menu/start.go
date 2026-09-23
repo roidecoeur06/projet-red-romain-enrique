@@ -38,7 +38,8 @@ func Start() {
 		fmt.Println("4. \033[31mCHOIX DU PERSONNAGE\033[0m")
 		fmt.Println("5. \033[31mQUITTER\033[0m")
 		fmt.Println()
-		overlay.PrintCashOverlay()
+		wallet := coins.GetWallet()
+		overlay.PrintWalletOverlay(wallet.Argent, wallet.Jetons)
 		fmt.Print("QUE VOULEZ VOUS FAIRE : ")
 
 		input, err := reader.ReadString('\n')
