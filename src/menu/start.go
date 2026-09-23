@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"blackjack/src/player"
+	"blackjack/src/regles"
 	table "blackjack/src/table"
 )
 
@@ -51,6 +52,8 @@ func Start() {
 		switch choice {
 		case 1:
 			table.Start(reader)
+		case 3:
+			regles.ShowRules(reader)
 		case 4:
 			player.ChooseCharacter(reader)
 		case 5:
