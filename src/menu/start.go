@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"blackjack/src/player"
+	table "blackjack/src/table"
 )
 
 const title = `████████    ██            ██████      ██████    ██      ██      ██████    ██████      ██████    ██      ██
@@ -47,6 +48,8 @@ func Start() {
 		}
 
 		switch choice {
+		case 1:
+			table.Start(reader)
 		case 4:
 			player.ChooseCharacter(reader)
 		case 5:
