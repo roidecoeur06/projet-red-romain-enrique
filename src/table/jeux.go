@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"math/rand"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -133,6 +134,8 @@ func playBlackjack(reader *bufio.Reader, jetons *int) {
 	}
 
 	*jetons -= mainBet
+	perfectPairsBet := askSideBet(reader, "Perfect Pairs", jetons)
+	plusThreeBet := askSideBet(reader, "21+3", jetons)
 
 	hand := Hand{Bet: mainBet, Cards: []Card{drawCard(&deck), drawCard(&deck)}}
 	dealerCards := []Card{drawCard(&deck), drawCard(&deck)}
@@ -140,6 +143,7 @@ func playBlackjack(reader *bufio.Reader, jetons *int) {
 	fmt.Println("\n--- DISTRIBUTION ---")
 	fmt.Printf("Main du croupier : %s et [Carte cachée]\n", printCard(dealerCards[0]))
 	fmt.Printf("Votre main : %s %s (Score: %d)\n", printCard(hand.Cards[0]), printCard(hand.Cards[1]), calculateScore(hand.Cards))
+	settleSideBets(hand.Cards, dealerCards[0], perfectPairsBet, plusThreeBet, jetons)
 
 	playerBJ := calculateScore(hand.Cards) == 21
 	dealerBJ := calculateScore(dealerCards) == 21
@@ -194,6 +198,101 @@ func playBlackjack(reader *bufio.Reader, jetons *int) {
 
 	fmt.Println("Appuyez sur Entrée pour continuer...")
 	reader.ReadString('\n')
+}
+
+func askSideBet(reader *bufio.Reader, name string, jetons *int) int {
+	if *jetons == 0 {
+		return 0
+	}
+
+	fmt.Printf("Mise %s (0 pour passer, max %d) : ", name, *jetons)
+	bet := readInt(reader)
+	if bet < 0 || bet > *jetons {
+		fmt.Println("Mise secondaire invalide, pari ignoré.")
+		return 0
+	}
+
+	*jetons -= bet
+	return bet
+}
+
+func settleSideBets(playerCards []Card, dealerVisible Card, perfectPairsBet int, plusThreeBet int, jetons *int) {
+	if perfectPairsBet > 0 {
+		name, multiplier := perfectPairsResult(playerCards[0], playerCards[1])
+		if multiplier == 0 {
+			fmt.Println("Perfect Pairs : perdu.")
+		} else {
+			*jetons += perfectPairsBet * (multiplier + 1)
+			fmt.Printf("Perfect Pairs : %s, gain de %d jetons.\n", name, perfectPairsBet*multiplier)
+		}
+	}
+
+	if plusThreeBet > 0 {
+		name, multiplier := plusThreeResult(playerCards[0], playerCards[1], dealerVisible)
+		if multiplier == 0 {
+			fmt.Println("21+3 : perdu.")
+		} else {
+			*jetons += plusThreeBet * (multiplier + 1)
+			fmt.Printf("21+3 : %s, gain de %d jetons.\n", name, plusThreeBet*multiplier)
+		}
+	}
+}
+
+func perfectPairsResult(first Card, second Card) (string, int) {
+	if first.Value != second.Value {
+		return "", 0
+	}
+	if first.Suit == second.Suit {
+		return "paire parfaite", 25
+	}
+	if first.Color == second.Color {
+		return "paire colorée", 12
+	}
+	return "paire mixte", 6
+}
+
+func plusThreeResult(first Card, second Card, dealer Card) (string, int) {
+	cards := []Card{first, second, dealer}
+	sameRank := cards[0].Rank == cards[1].Rank && cards[1].Rank == cards[2].Rank
+	sameSuit := cards[0].Suit == cards[1].Suit && cards[1].Suit == cards[2].Suit
+	straight := isStraight(cards)
+
+	switch {
+	case sameRank:
+		return "brelan", 30
+	case sameSuit && straight:
+		return "quinte flush", 40
+	case straight:
+		return "suite", 10
+	case sameSuit:
+		return "couleur", 5
+	default:
+		return "", 0
+	}
+}
+
+func isStraight(cards []Card) bool {
+	values := make([]int, 0, len(cards))
+	for _, card := range cards {
+		value := card.Value
+		switch card.Rank {
+		case "V":
+			value = 11
+		case "D":
+			value = 12
+		case "R":
+			value = 13
+		case "A":
+			value = 14
+		}
+		values = append(values, value)
+	}
+
+	sort.Ints(values)
+	if values[0] == 2 && values[1] == 3 && values[2] == 14 {
+		return true
+	}
+	return values[0]+1 == values[1] && values[1]+1 == values[2]
 }
 
 func playHand(reader *bufio.Reader, deck *[]Card, hand *Hand, jetons *int) {
