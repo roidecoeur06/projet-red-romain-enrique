@@ -8,13 +8,16 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"blackjack/src/cards"
 )
 
 type Card struct {
-	Rank  string
-	Suit  string
-	Value int
-	Color string
+	Rank   string
+	Suit   string
+	Value  int
+	Color  string
+	Visual cards.Card
 }
 
 type Hand struct {
@@ -45,7 +48,16 @@ func createDeck(numDecks int) []Card {
 				} else {
 					val, _ = strconv.Atoi(rank)
 				}
-				deck = append(deck, Card{Rank: rank, Suit: suit, Value: val, Color: color})
+				deck = append(deck, Card{
+					Rank:  rank,
+					Suit:  suit,
+					Value: val,
+					Color: color,
+					Visual: cards.Card{
+						Suit:  cardSuitSymbol(suit),
+						Value: rank,
+					},
+				})
 			}
 		}
 	}
@@ -78,6 +90,34 @@ func calculateScore(cards []Card) int {
 
 func printCard(c Card) string {
 	return fmt.Sprintf("[%s de %s]", c.Rank, c.Suit)
+}
+
+func cardSuitSymbol(suit string) string {
+	switch suit {
+	case "Cœur":
+		return "♥"
+	case "Carreau":
+		return "♦"
+	case "Trèfle":
+		return "♣"
+	default:
+		return "♠"
+	}
+}
+
+func renderCards(hand []Card) string {
+	if len(hand) == 0 {
+		return ""
+	}
+
+	lines := make([]string, len(hand[0].Visual.GetASCII()))
+	for _, card := range hand {
+		ascii := card.Visual.GetASCII()
+		for index, line := range ascii {
+			lines[index] += line + "  "
+		}
+	}
+	return strings.Join(lines, "\n")
 }
 
 func readInt(reader *bufio.Reader) int {
@@ -117,6 +157,9 @@ func Start(reader *bufio.Reader, jetons *int) {
 }
 
 func playBlackjack(reader *bufio.Reader, jetons *int) {
+	fmt.Print("\033[2J\033[3J\033[H")
+	fmt.Println("========== PARTIE EN COURS ==========")
+
 	if *jetons <= 0 {
 		fmt.Println("Vous n'avez pas de jetons ! Allez en acheter au menu des Coins.")
 		waitAndClear(reader, "Appuyez sur Entrée pour revenir.")
@@ -125,7 +168,8 @@ func playBlackjack(reader *bufio.Reader, jetons *int) {
 
 	deck := createDeck(6)
 
-	fmt.Printf("\nCombien de jetons voulez-vous miser ? (Max %d) : ", *jetons)
+	fmt.Printf("Jetons disponibles : %d\n", *jetons)
+	fmt.Printf("Mise principale (max %d) : ", *jetons)
 	mainBet := readInt(reader)
 	if mainBet <= 0 || mainBet > *jetons {
 		fmt.Println("Mise invalide. Retour au menu.")
@@ -140,15 +184,15 @@ func playBlackjack(reader *bufio.Reader, jetons *int) {
 	dealerCards := []Card{drawCard(&deck), drawCard(&deck)}
 
 	fmt.Println("\n--- DISTRIBUTION ---")
-	fmt.Printf("Main du croupier : %s et [Carte cachée]\n", printCard(dealerCards[0]))
-	fmt.Printf("Votre main : %s %s (Score: %d)\n", printCard(hand.Cards[0]), printCard(hand.Cards[1]), calculateScore(hand.Cards))
+	fmt.Printf("CROUPIER :\n%s\nCarte cachée\n", renderCards(dealerCards[:1]))
+	fmt.Printf("VOS CARTES :\n%s\nTOTAL : %d\n", renderCards(hand.Cards), calculateScore(hand.Cards))
 	settleSideBets(hand.Cards, dealerCards[0], perfectPairsBet, plusThreeBet, jetons)
 
 	playerBJ := calculateScore(hand.Cards) == 21
 	dealerBJ := calculateScore(dealerCards) == 21
 
 	if playerBJ || dealerBJ {
-		fmt.Printf("\nCarte cachée du croupier : %s (Score: %d)\n", printCard(dealerCards[1]), calculateScore(dealerCards))
+		fmt.Printf("\nCROUPIER :\n%s\nTOTAL : %d\n", renderCards(dealerCards), calculateScore(dealerCards))
 		if playerBJ && !dealerBJ {
 			fmt.Println("BLACKJACK NATUREL ! Vous gagnez 3:2 !")
 			*jetons += int(float64(mainBet) * 2.5)
@@ -190,11 +234,7 @@ func playBlackjack(reader *bufio.Reader, jetons *int) {
 		}
 	}
 
-	fmt.Printf("\nMain du croupier : ")
-	for _, card := range dealerCards {
-		fmt.Printf("%s ", printCard(card))
-	}
-	fmt.Printf("(Score: %d)\n", calculateScore(dealerCards))
+	fmt.Printf("\nCROUPIER :\n%s\nTOTAL : %d\n", renderCards(dealerCards), calculateScore(dealerCards))
 
 	for index, currentHand := range hands {
 		fmt.Printf("\nRésultat de la main %d :\n", index+1)
@@ -333,12 +373,9 @@ func playHand(reader *bufio.Reader, deck *[]Card, hand *Hand, jetons *int, allow
 			return false
 		}
 
-		fmt.Printf("\nVotre main : ")
-		for _, card := range hand.Cards {
-			fmt.Printf("%s ", printCard(card))
-		}
-		fmt.Printf("(Score: %d)\n", score)
-		fmt.Println("1. Tirer")
+		fmt.Printf("\nVOS CARTES :\n%s\nTOTAL : %d\n", renderCards(hand.Cards), score)
+		fmt.Println("\nQUE FAIRE ?")
+		fmt.Println("1. Tirer une carte")
 		fmt.Println("2. Rester")
 		if !hand.IsDoubled {
 			fmt.Println("3. Doubler")
