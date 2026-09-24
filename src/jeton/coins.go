@@ -44,6 +44,10 @@ func (w *Wallet) VendreJetons(nombre int) bool {
 	return true
 }
 
+func GetWalletPtr() *Wallet {
+	return &wallet
+}
+
 func Start(reader *bufio.Reader) {
 	for {
 		fmt.Print("\033[2J\033[3J\033[H")

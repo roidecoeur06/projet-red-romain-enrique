@@ -38,7 +38,7 @@ func Start() {
 		fmt.Println("4. \033[31mCHOIX DU PERSONNAGE\033[0m")
 		fmt.Println("5. \033[31mQUITTER\033[0m")
 		fmt.Println()
-		wallet := coins.GetWallet()
+		wallet := coins.GetWalletPtr()
 		overlay.PrintWalletOverlay(wallet.Argent, wallet.Jetons)
 		fmt.Print("QUE VOULEZ VOUS FAIRE : ")
 
@@ -55,7 +55,7 @@ func Start() {
 
 		switch choice {
 		case 1:
-			table.Start(reader)
+			table.Start(reader, &wallet.Jetons)
 		case 2:
 			coins.Start(reader)
 		case 3:

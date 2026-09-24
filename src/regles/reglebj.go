@@ -66,7 +66,7 @@ Ce pari combine les deux cartes du joueur et la carte visible du croupier, éval
 
 func ShowRules(reader *bufio.Reader) {
 	fmt.Print("\033[2J\033[3J\033[H")
-	fmt.Println(reglesBlackjack)
+	fmt.Print(reglesBlackjack)
 	fmt.Println()
 	fmt.Print("Appuyez sur Entrée pour revenir au menu... ")
 
