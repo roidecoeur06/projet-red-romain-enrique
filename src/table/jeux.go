@@ -119,8 +119,7 @@ func Start(reader *bufio.Reader, jetons *int) {
 func playBlackjack(reader *bufio.Reader, jetons *int) {
 	if *jetons <= 0 {
 		fmt.Println("Vous n'avez pas de jetons ! Allez en acheter au menu des Coins.")
-		fmt.Println("Appuyez sur Entrée pour revenir.")
-		reader.ReadString('\n')
+		waitAndClear(reader, "Appuyez sur Entrée pour revenir.")
 		return
 	}
 
@@ -159,14 +158,33 @@ func playBlackjack(reader *bufio.Reader, jetons *int) {
 			fmt.Println("Égalité (Push) ! Les deux ont Blackjack.")
 			*jetons += mainBet
 		}
-		fmt.Println("Appuyez sur Entrée pour continuer...")
-		reader.ReadString('\n')
+		waitAndClear(reader, "Appuyez sur Entrée pour continuer...")
 		return
 	}
 
-	playHand(reader, &deck, &hand, jetons)
+	splitRequested := playHand(reader, &deck, &hand, jetons, true)
+	hands := []Hand{hand}
+	if splitRequested {
+		*jetons -= hand.Bet
+		hands = []Hand{
+			{Bet: hand.Bet, Cards: []Card{hand.Cards[0], drawCard(&deck)}},
+			{Bet: hand.Bet, Cards: []Card{hand.Cards[1], drawCard(&deck)}},
+		}
+		fmt.Println("\nLa main est divisée en deux.")
+		for index := range hands {
+			fmt.Printf("\n--- Main %d ---\n", index+1)
+			playHand(reader, &deck, &hands[index], jetons, false)
+		}
+	}
 
-	if !hand.IsSurrender && calculateScore(hand.Cards) <= 21 {
+	shouldPlayDealer := false
+	for _, currentHand := range hands {
+		if !currentHand.IsSurrender && calculateScore(currentHand.Cards) <= 21 {
+			shouldPlayDealer = true
+			break
+		}
+	}
+	if shouldPlayDealer {
 		for calculateScore(dealerCards) < 17 {
 			dealerCards = append(dealerCards, drawCard(&deck))
 		}
@@ -178,6 +196,15 @@ func playBlackjack(reader *bufio.Reader, jetons *int) {
 	}
 	fmt.Printf("(Score: %d)\n", calculateScore(dealerCards))
 
+	for index, currentHand := range hands {
+		fmt.Printf("\nRésultat de la main %d :\n", index+1)
+		settleHand(currentHand, dealerCards, jetons)
+	}
+
+	waitAndClear(reader, "Appuyez sur Entrée pour continuer...")
+}
+
+func settleHand(hand Hand, dealerCards []Card, jetons *int) {
 	playerScore := calculateScore(hand.Cards)
 	dealerScore := calculateScore(dealerCards)
 	switch {
@@ -195,9 +222,12 @@ func playBlackjack(reader *bufio.Reader, jetons *int) {
 	default:
 		fmt.Println("Le croupier gagne. Vous perdez votre mise.")
 	}
+}
 
-	fmt.Println("Appuyez sur Entrée pour continuer...")
+func waitAndClear(reader *bufio.Reader, message string) {
+	fmt.Println(message)
 	reader.ReadString('\n')
+	fmt.Print("\033[2J\033[3J\033[H")
 }
 
 func askSideBet(reader *bufio.Reader, name string, jetons *int) int {
@@ -295,12 +325,12 @@ func isStraight(cards []Card) bool {
 	return values[0]+1 == values[1] && values[1]+1 == values[2]
 }
 
-func playHand(reader *bufio.Reader, deck *[]Card, hand *Hand, jetons *int) {
+func playHand(reader *bufio.Reader, deck *[]Card, hand *Hand, jetons *int, allowSplit bool) bool {
 	for {
 		score := calculateScore(hand.Cards)
 		if score > 21 {
 			fmt.Printf("\nVotre score est de %d : vous dépassez 21.\n", score)
-			return
+			return false
 		}
 
 		fmt.Printf("\nVotre main : ")
@@ -313,6 +343,9 @@ func playHand(reader *bufio.Reader, deck *[]Card, hand *Hand, jetons *int) {
 		if !hand.IsDoubled {
 			fmt.Println("3. Doubler")
 			fmt.Println("4. Abandonner")
+			if allowSplit && len(hand.Cards) == 2 && hand.Cards[0].Value == hand.Cards[1].Value {
+				fmt.Println("5. Diviser (Split)")
+			}
 		}
 		fmt.Print("Votre action : ")
 
@@ -321,7 +354,7 @@ func playHand(reader *bufio.Reader, deck *[]Card, hand *Hand, jetons *int) {
 		case 1:
 			hand.Cards = append(hand.Cards, drawCard(deck))
 		case 2:
-			return
+			return false
 		case 3:
 			if hand.IsDoubled {
 				fmt.Println("Vous ne pouvez doubler qu'une seule fois.")
@@ -335,14 +368,24 @@ func playHand(reader *bufio.Reader, deck *[]Card, hand *Hand, jetons *int) {
 			hand.Bet *= 2
 			hand.IsDoubled = true
 			hand.Cards = append(hand.Cards, drawCard(deck))
-			return
+			return false
 		case 4:
 			if len(hand.Cards) != 2 {
 				fmt.Println("Vous ne pouvez abandonner qu'après la distribution initiale.")
 				continue
 			}
 			hand.IsSurrender = true
-			return
+			return false
+		case 5:
+			if !allowSplit || len(hand.Cards) != 2 || hand.Cards[0].Value != hand.Cards[1].Value {
+				fmt.Println("Split impossible pour cette main.")
+				continue
+			}
+			if *jetons < hand.Bet {
+				fmt.Println("Vous n'avez pas assez de jetons pour diviser la main.")
+				continue
+			}
+			return true
 		default:
 			fmt.Println("Action invalide.")
 		}
