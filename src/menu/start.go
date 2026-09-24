@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"blackjack/src/inventory"
 	coins "blackjack/src/jeton"
 	"blackjack/src/overlay"
 	"blackjack/src/player"
@@ -36,7 +37,8 @@ func Start() {
 		fmt.Println("2. \033[31mACHETER DES JETONS / VENDRE LES JETONS\033[0m")
 		fmt.Println("3. \033[31mLES REGLES\033[0m")
 		fmt.Println("4. \033[31mCHOIX DU PERSONNAGE\033[0m")
-		fmt.Println("5. \033[31mQUITTER\033[0m")
+		fmt.Println("5. \033[31mINVENTAIRE\033[0m")
+		fmt.Println("6. \033[31mQUITTER\033[0m")
 		fmt.Println()
 		wallet := coins.GetWalletPtr()
 		overlay.PrintWalletOverlay(wallet.Argent, wallet.Jetons)
@@ -69,6 +71,8 @@ func Start() {
 		case 4:
 			player.ChooseCharacter(reader)
 		case 5:
+			inventory.Inventaire(reader, player.GetFirstName())
+		case 6:
 			return
 		default:
 			fmt.Println("Cette fonctionnalite arrive bientot.")
