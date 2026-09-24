@@ -120,6 +120,10 @@ func renderCards(hand []Card) string {
 	return strings.Join(lines, "\n")
 }
 
+func renderHiddenCard() string {
+	return strings.Join((cards.Card{}).GetBackASCII(), "\n")
+}
+
 func readInt(reader *bufio.Reader) int {
 	input, _ := reader.ReadString('\n')
 	val, err := strconv.Atoi(strings.TrimSpace(input))
@@ -184,8 +188,7 @@ func playBlackjack(reader *bufio.Reader, jetons *int) {
 	dealerCards := []Card{drawCard(&deck), drawCard(&deck)}
 
 	fmt.Println("\n--- DISTRIBUTION ---")
-	fmt.Printf("CROUPIER :\n%s\nCarte cachée\n", renderCards(dealerCards[:1]))
-	fmt.Printf("VOS CARTES :\n%s\nTOTAL : %d\n", renderCards(hand.Cards), calculateScore(hand.Cards))
+	fmt.Printf("CROUPIER :\n%s\n%s\n", renderCards(dealerCards[:1]), renderHiddenCard())
 	settleSideBets(hand.Cards, dealerCards[0], perfectPairsBet, plusThreeBet, jetons)
 
 	playerBJ := calculateScore(hand.Cards) == 21

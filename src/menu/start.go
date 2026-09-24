@@ -48,7 +48,12 @@ func Start() {
 			return
 		}
 
-		choice, err := strconv.Atoi(strings.TrimSpace(input))
+		input = strings.TrimSpace(input)
+		if handleCheatCommand(reader, input) {
+			continue
+		}
+
+		choice, err := strconv.Atoi(input)
 		if err != nil {
 			fmt.Println("Choix invalide.")
 			continue
@@ -69,6 +74,30 @@ func Start() {
 			fmt.Println("Cette fonctionnalite arrive bientot.")
 		}
 	}
+}
+
+func handleCheatCommand(reader *bufio.Reader, input string) bool {
+	parts := strings.Fields(input)
+	if len(parts) == 0 || strings.ToLower(parts[0]) != "triche" {
+		return false
+	}
+
+	if len(parts) != 2 {
+		fmt.Println("Commande : triche <montant>")
+		reader.ReadString('\n')
+		return true
+	}
+
+	amount, err := strconv.Atoi(parts[1])
+	if err != nil || !coins.AddCheatMoney(amount) {
+		fmt.Println("Montant de triche invalide.")
+		reader.ReadString('\n')
+		return true
+	}
+
+	fmt.Printf("Triche activée : +%d argent. Appuyez sur Entrée.\n", amount)
+	reader.ReadString('\n')
+	return true
 }
 
 func clearTerminal() {

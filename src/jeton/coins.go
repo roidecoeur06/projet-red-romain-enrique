@@ -48,6 +48,15 @@ func GetWalletPtr() *Wallet {
 	return &wallet
 }
 
+func AddCheatMoney(amount int) bool {
+	if amount <= 0 {
+		return false
+	}
+
+	wallet.Argent += amount
+	return true
+}
+
 func afficherResultatVente() {
 	if wallet.Argent < StartingMoney {
 		fmt.Println("\033[31mDEFAITE : le casino a gagne, votre argent est inferieur a 100K.\033[0m")
