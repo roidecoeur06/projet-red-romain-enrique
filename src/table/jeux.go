@@ -134,15 +134,14 @@ func playBlackjack(reader *bufio.Reader, jetons *int) {
 
 	*jetons -= mainBet
 
-	var playerHands []Hand
-	playerHands = append(playerHands, Hand{Bet: mainBet, Cards: []Card{drawCard(&deck), drawCard(&deck)}})
+	hand := Hand{Bet: mainBet, Cards: []Card{drawCard(&deck), drawCard(&deck)}}
 	dealerCards := []Card{drawCard(&deck), drawCard(&deck)}
 
 	fmt.Println("\n--- DISTRIBUTION ---")
 	fmt.Printf("Main du croupier : %s et [Carte cachée]\n", printCard(dealerCards[0]))
-	fmt.Printf("Votre main : %s %s (Score: %d)\n", printCard(playerHands[0].Cards[0]), printCard(playerHands[0].Cards[1]), calculateScore(playerHands[0].Cards))
+	fmt.Printf("Votre main : %s %s (Score: %d)\n", printCard(hand.Cards[0]), printCard(hand.Cards[1]), calculateScore(hand.Cards))
 
-	playerBJ := calculateScore(playerHands[0].Cards) == 21
+	playerBJ := calculateScore(hand.Cards) == 21
 	dealerBJ := calculateScore(dealerCards) == 21
 
 	if playerBJ || dealerBJ {
@@ -161,9 +160,92 @@ func playBlackjack(reader *bufio.Reader, jetons *int) {
 		return
 	}
 
-	fmt.Println("\n[La suite du jeu arrivera au prochain commit !]")
-	fmt.Println("Pour l'instant, on vous rend votre mise de base.")
-	*jetons += mainBet
+	playHand(reader, &deck, &hand, jetons)
+
+	if !hand.IsSurrender && calculateScore(hand.Cards) <= 21 {
+		for calculateScore(dealerCards) < 17 {
+			dealerCards = append(dealerCards, drawCard(&deck))
+		}
+	}
+
+	fmt.Printf("\nMain du croupier : ")
+	for _, card := range dealerCards {
+		fmt.Printf("%s ", printCard(card))
+	}
+	fmt.Printf("(Score: %d)\n", calculateScore(dealerCards))
+
+	playerScore := calculateScore(hand.Cards)
+	dealerScore := calculateScore(dealerCards)
+	switch {
+	case hand.IsSurrender:
+		*jetons += hand.Bet / 2
+		fmt.Printf("Abandon : vous récupérez %d jetons.\n", hand.Bet/2)
+	case playerScore > 21:
+		fmt.Println("Vous dépassez 21. Vous perdez votre mise.")
+	case dealerScore > 21 || playerScore > dealerScore:
+		*jetons += hand.Bet * 2
+		fmt.Printf("Vous gagnez %d jetons !\n", hand.Bet)
+	case playerScore == dealerScore:
+		*jetons += hand.Bet
+		fmt.Println("Égalité : votre mise est remboursée.")
+	default:
+		fmt.Println("Le croupier gagne. Vous perdez votre mise.")
+	}
+
 	fmt.Println("Appuyez sur Entrée pour continuer...")
 	reader.ReadString('\n')
+}
+
+func playHand(reader *bufio.Reader, deck *[]Card, hand *Hand, jetons *int) {
+	for {
+		score := calculateScore(hand.Cards)
+		if score > 21 {
+			fmt.Printf("\nVotre score est de %d : vous dépassez 21.\n", score)
+			return
+		}
+
+		fmt.Printf("\nVotre main : ")
+		for _, card := range hand.Cards {
+			fmt.Printf("%s ", printCard(card))
+		}
+		fmt.Printf("(Score: %d)\n", score)
+		fmt.Println("1. Tirer")
+		fmt.Println("2. Rester")
+		if !hand.IsDoubled {
+			fmt.Println("3. Doubler")
+			fmt.Println("4. Abandonner")
+		}
+		fmt.Print("Votre action : ")
+
+		choice := readInt(reader)
+		switch choice {
+		case 1:
+			hand.Cards = append(hand.Cards, drawCard(deck))
+		case 2:
+			return
+		case 3:
+			if hand.IsDoubled {
+				fmt.Println("Vous ne pouvez doubler qu'une seule fois.")
+				continue
+			}
+			if *jetons < hand.Bet {
+				fmt.Println("Vous n'avez pas assez de jetons pour doubler.")
+				continue
+			}
+			*jetons -= hand.Bet
+			hand.Bet *= 2
+			hand.IsDoubled = true
+			hand.Cards = append(hand.Cards, drawCard(deck))
+			return
+		case 4:
+			if len(hand.Cards) != 2 {
+				fmt.Println("Vous ne pouvez abandonner qu'après la distribution initiale.")
+				continue
+			}
+			hand.IsSurrender = true
+			return
+		default:
+			fmt.Println("Action invalide.")
+		}
+	}
 }
