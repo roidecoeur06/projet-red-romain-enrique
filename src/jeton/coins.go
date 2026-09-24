@@ -48,6 +48,20 @@ func GetWalletPtr() *Wallet {
 	return &wallet
 }
 
+func afficherResultatVente() {
+	if wallet.Argent < StartingMoney {
+		fmt.Println("\033[31mDEFAITE : le casino a gagne, votre argent est inferieur a 100K.\033[0m")
+		return
+	}
+
+	if wallet.Argent > StartingMoney {
+		fmt.Println("\033[33mVICTOIRE : vous avez gagne contre le casino, votre argent depasse 100K.\033[0m")
+		return
+	}
+
+	fmt.Println("EGALITE : vous avez exactement 100K.")
+}
+
 func Start(reader *bufio.Reader) {
 	for {
 		fmt.Print("\033[2J\033[3J\033[H")
@@ -110,9 +124,12 @@ func Start(reader *bufio.Reader) {
 			}
 			if wallet.VendreJetons(amount) {
 				fmt.Printf("Vente de %d jetons effectuee.\n", amount)
+				fmt.Println()
+				afficherResultatVente()
 			} else {
 				fmt.Println("Vous n'avez pas assez de jetons pour vendre cette quantite.")
 			}
+			fmt.Println()
 			fmt.Println("Appuyez sur Entrée pour revenir au menu.")
 			_, _ = reader.ReadString('\n')
 			return

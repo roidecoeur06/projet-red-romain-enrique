@@ -14,8 +14,19 @@ const characterTitle = `
         █     █   █ █   █  █   █ █     █   █ █   █    █     █     █  █      █ █   █ █  ██ █  ██ █   █ █   █ █             
          ███  █   █  ███  ███ █   █    ████   ███     █     █████ █   █ ████   ███  █   █ █   █ █   █  ███  █████`
 
+type character struct {
+	title     string
+	firstName string
+}
+
+var currentFirstName = "JOUEUR"
+
 func ChooseCharacter(reader *bufio.Reader) {
-	characters := []string{"LE MENTALISTE", "LE RICHISSIME", "LE JOUEUR NORMAL"}
+	characters := []character{
+		{title: "LE MENTALISTE", firstName: "ALEX"},
+		{title: "LE RICHISSIME", firstName: "VICTOR"},
+		{title: "LE JOUEUR NORMAL", firstName: "LOUIS"},
+	}
 
 	for {
 		clearTerminal()
@@ -40,8 +51,33 @@ func ChooseCharacter(reader *bufio.Reader) {
 		}
 
 		fmt.Println()
-		fmt.Printf("Vous avez choisi %s.\n", characters[choice-1])
+		selectedCharacter := characters[choice-1]
+		fmt.Printf("Vous avez choisi %s.\n", selectedCharacter.title)
 		printCharacterCharacteristics(choice)
+
+		fmt.Println()
+		fmt.Printf("Le prenom actuel est %s.\n", selectedCharacter.firstName)
+		fmt.Print("VOULEZ-VOUS CHANGER LE PRENOM DU PERSONNAGE ? (oui/non) : ")
+		changeName, err := reader.ReadString('\n')
+		if err != nil && len(changeName) == 0 {
+			return
+		}
+
+		selectedFirstName := selectedCharacter.firstName
+		if strings.ToLower(strings.TrimSpace(changeName)) == "oui" {
+			fmt.Print("ECRIVEZ LE PRENOM DE VOTRE PERSONNAGE : ")
+			newFirstName, err := reader.ReadString('\n')
+			if err != nil && len(newFirstName) == 0 {
+				return
+			}
+
+			newFirstName = strings.TrimSpace(newFirstName)
+			if newFirstName == "" {
+				fmt.Println("Le prenom ne peut pas etre vide.")
+				continue
+			}
+			selectedFirstName = newFirstName
+		}
 
 		fmt.Println()
 		fmt.Print("VOULEZ-VOUS CHANGER DE PERSONNAGE ? (oui/non) : ")
@@ -54,10 +90,15 @@ func ChooseCharacter(reader *bufio.Reader) {
 			continue
 		}
 
+		currentFirstName = selectedFirstName
 		fmt.Println("Vous allez etre redirige vers le menu principal.")
 		clearTerminal()
 		return
 	}
+}
+
+func GetFirstName() string {
+	return currentFirstName
 }
 
 func printCharacterCharacteristics(choice int) {

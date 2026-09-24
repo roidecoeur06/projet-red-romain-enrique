@@ -40,6 +40,7 @@ func Start() {
 		fmt.Println()
 		wallet := coins.GetWalletPtr()
 		overlay.PrintWalletOverlay(wallet.Argent, wallet.Jetons)
+		overlay.PrintFirstNameOverlay(player.GetFirstName())
 		fmt.Print("QUE VOULEZ VOUS FAIRE : ")
 
 		input, err := reader.ReadString('\n')
