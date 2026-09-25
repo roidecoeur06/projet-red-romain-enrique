@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"unicode"
 )
 
 const characterTitle = `
@@ -69,18 +70,23 @@ func ChooseCharacter(reader *bufio.Reader) {
 
 		selectedFirstName := selectedCharacter.firstName
 		if strings.ToLower(strings.TrimSpace(changeName)) == "oui" {
-			fmt.Print("ECRIVEZ LE PRENOM DE VOTRE PERSONNAGE : ")
-			newFirstName, err := reader.ReadString('\n')
-			if err != nil && len(newFirstName) == 0 {
-				return
-			}
+			for {
+				fmt.Print("ECRIVEZ LE PRENOM DE VOTRE PERSONNAGE : ")
+				newFirstName, err := reader.ReadString('\n')
+				if err != nil && len(newFirstName) == 0 {
+					return
+				}
 
-			newFirstName = strings.TrimSpace(newFirstName)
-			if newFirstName == "" {
-				fmt.Println("Le prenom ne peut pas etre vide.")
-				continue
+				newFirstName = strings.TrimSpace(newFirstName)
+				if isValidFirstName(newFirstName) {
+					selectedFirstName = newFirstName
+					break
+				}
+
+				fmt.Println("Prenom incorrect.")
+				fmt.Print("Appuyez sur Entrée pour réécrire le prénom.")
+				reader.ReadString('\n')
 			}
-			selectedFirstName = newFirstName
 		}
 
 		fmt.Println()
@@ -133,6 +139,25 @@ func UsePower() bool {
 
 func PowerCooldown() int {
 	return powerCooldown
+}
+
+func isValidFirstName(firstName string) bool {
+	letters := []rune(firstName)
+	if len(letters) == 0 || !unicode.IsUpper(letters[0]) {
+		return false
+	}
+
+	for _, letter := range letters {
+		if !unicode.IsLetter(letter) {
+			return false
+		}
+	}
+	for _, letter := range letters[1:] {
+		if !unicode.IsLower(letter) {
+			return false
+		}
+	}
+	return true
 }
 
 func GetPV() int {
