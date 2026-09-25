@@ -164,6 +164,9 @@ func Start(reader *bufio.Reader, jetons *int) {
 func playBlackjack(reader *bufio.Reader, jetons *int) {
 	fmt.Print("\033[2J\033[3J\033[H")
 	fmt.Println("========== PARTIE EN COURS ==========")
+	fmt.Println("\n--- INVENTAIRE ---")
+	inventory.Inventaire(reader, *jetons)
+
 	dealerReduction, p3Active := inventory.StartRound()
 	if dealerReduction > 0 {
 		fmt.Println("Potion P2 activee : le score du croupier est reduit de 2 points pour ce tour.")

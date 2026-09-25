@@ -16,6 +16,7 @@ var potionP3Charges = 2
 var potionP3Cooldown = 0
 var potionP3Pending = false
 var backpackTimer *time.Timer
+var roundNumber = 0
 
 func Inventaire(reader *bufio.Reader, jetons int) {
 	for {
@@ -46,7 +47,7 @@ func printInventory(jetons int) {
 	fmt.Println("+------------------------------------------------------+")
 	fmt.Println("|              == INVENTAIRE BLACKJACK ==              |")
 	fmt.Println("+------------------------------------------------------+")
-	fmt.Printf("| JETONS: %-5d   MANCHE: 7     SAC: 3/%-2d             |\n", jetons, backpackCapacity)
+	fmt.Printf("| JETONS: %-5d   MANCHE: %-3d SAC: 3/%-2d             |\n", jetons, roundNumber, backpackCapacity)
 	fmt.Println("+------------------------------------------------------+")
 	fmt.Printf("|                 SAC A DOS (%-2d slots)                 |\n", backpackCapacity)
 	fmt.Println("|                                                      |")
@@ -59,7 +60,7 @@ func printInventory(jetons int) {
 	fmt.Println("| POTION             | EFFET                  | ETAT   |")
 	fmt.Println("+--------------------+------------------------+--------+")
 	fmt.Printf("| P1 Potion x%-3d     | Sac agrandi a 30 slots  | %-6s |\n", potionP1, potionState(potionP1))
-	fmt.Printf("| P2 Potion Malus x%-1d   | Croupier -2 pendant 1 tour | %-4s |\n", potionP2Quantity(), "PRET")
+	fmt.Printf("| P2 Potion Malus x%-1d   | Croupier -2 pendant 1 tour | %-4s |\n", potionP2Quantity(), potionP2State())
 	fmt.Printf("| P3 Potion As x%-4d   | 20 devient 21          | %-6s |\n", potionP3Quantity(), potionP3State())
 	fmt.Println("+--------------------+------------------------+--------+")
 	fmt.Println("| Recharge : 5 manches apres chaque usage              |")
@@ -80,6 +81,13 @@ func potionP2Quantity() int {
 	return 1
 }
 
+func potionP2State() string {
+	if potionP2Cooldown > 0 {
+		return "RECHARGE"
+	}
+	return "PRET"
+}
+
 func potionP3Quantity() int {
 	if potionP3Cooldown > 0 {
 		return 0
@@ -97,8 +105,14 @@ func potionP3State() string {
 	return "PRET"
 }
 
+func GetRoundNumber() int {
+	return roundNumber
+}
+
 // StartRound advances potion cooldowns and returns the effects for this round.
 func StartRound() (int, bool) {
+	roundNumber++
+
 	if potionP2Cooldown > 0 {
 		potionP2Cooldown--
 	}
