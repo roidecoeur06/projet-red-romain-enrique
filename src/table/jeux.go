@@ -11,6 +11,8 @@ import (
 
 	"blackjack/src/cards"
 	"blackjack/src/inventory"
+	"blackjack/src/overlay"
+	"blackjack/src/player"
 )
 
 type Card struct {
@@ -138,6 +140,7 @@ func Start(reader *bufio.Reader, jetons *int) {
 	fmt.Print("\033[2J\033[3J\033[H")
 
 	for {
+		overlay.PrintPVOverlay(player.GetPV())
 		fmt.Println("\n====================================")
 		fmt.Println("        TABLE DE BLACKJACK        ")
 		fmt.Printf("        Vos jetons : %d\n", *jetons)
@@ -151,6 +154,11 @@ func Start(reader *bufio.Reader, jetons *int) {
 
 		switch choice {
 		case 1:
+			if player.IsKO() {
+				fmt.Println("Vous êtes KO : vos PV sont à 0, vous ne pouvez plus jouer.")
+				waitAndClear(reader, "Appuyez sur Entrée pour revenir.")
+				continue
+			}
 			playBlackjack(reader, jetons)
 		case 2:
 			fmt.Print("\033[2J\033[3J\033[H")
@@ -164,10 +172,12 @@ func Start(reader *bufio.Reader, jetons *int) {
 func playBlackjack(reader *bufio.Reader, jetons *int) {
 	fmt.Print("\033[2J\033[3J\033[H")
 	fmt.Println("========== PARTIE EN COURS ==========")
+	overlay.PrintPVOverlay(player.GetPV())
 	fmt.Println("\n--- INVENTAIRE ---")
 	inventory.Inventaire(reader, *jetons)
 
 	dealerReduction, p3Active := inventory.StartRound()
+	player.AdvancePowerCooldown()
 	if dealerReduction > 0 {
 		fmt.Println("Potion P2 activee : le score du croupier est reduit de 2 points pour ce tour.")
 	}
@@ -194,9 +204,29 @@ func playBlackjack(reader *bufio.Reader, jetons *int) {
 
 	hand := Hand{Bet: mainBet, Cards: []Card{drawCard(&deck), drawCard(&deck)}}
 	dealerCards := []Card{drawCard(&deck), drawCard(&deck)}
+	doubleReward := false
+	bonusReward := 0
 
 	fmt.Println("\n--- DISTRIBUTION ---")
 	fmt.Printf("CROUPIER :\n%s\n%s\n", renderCards(dealerCards[:1]), renderHiddenCard())
+	if player.CanUsePower() {
+		fmt.Printf("Pouvoir disponible (%s). Utiliser maintenant ? (oui/non) : ", characterPowerName(player.GetCharacter()))
+		answer, _ := reader.ReadString('\n')
+		if strings.ToLower(strings.TrimSpace(answer)) == "oui" && player.UsePower() {
+			switch player.GetCharacter() {
+			case 1:
+				fmt.Printf("Pouvoir du Mentaliste : la carte cachee est %s.\n", printCard(dealerCards[1]))
+			case 2:
+				doubleReward = true
+				fmt.Println("Pouvoir du Richissime : vos gains de cette manche sont doubles.")
+			case 3:
+				bonusReward = 10
+				fmt.Println("Pouvoir du Joueur normal : une victoire rapporte 10 jetons supplementaires.")
+			}
+		}
+	} else if player.GetCharacter() != 0 {
+		fmt.Printf("Pouvoir en recharge : encore %d manche(s).\n", player.PowerCooldown())
+	}
 	settleSideBets(hand.Cards, dealerCards[0], perfectPairsBet, plusThreeBet, jetons)
 
 	playerBJ := calculateScore(hand.Cards) == 21
@@ -207,8 +237,11 @@ func playBlackjack(reader *bufio.Reader, jetons *int) {
 		if playerBJ && !dealerBJ {
 			fmt.Println("BLACKJACK NATUREL ! Vous gagnez 3:2 !")
 			*jetons += int(float64(mainBet) * 2.5)
+			*jetons += bonusReward
+			player.ApplyRoundResult(true)
 		} else if dealerBJ && !playerBJ {
 			fmt.Println("Le Croupier a Blackjack. Vous perdez votre mise.")
+			player.ApplyRoundResult(false)
 		} else {
 			fmt.Println("Égalité (Push) ! Les deux ont Blackjack.")
 			*jetons += mainBet
@@ -249,7 +282,7 @@ func playBlackjack(reader *bufio.Reader, jetons *int) {
 
 	for index, currentHand := range hands {
 		fmt.Printf("\nRésultat de la main %d :\n", index+1)
-		settleHand(currentHand, dealerCards, dealerReduction, jetons)
+		settleHand(currentHand, dealerCards, dealerReduction, jetons, doubleReward, bonusReward)
 	}
 
 	waitAndClear(reader, "Appuyez sur Entrée pour continuer...")
@@ -263,23 +296,44 @@ func dealerScore(cards []Card, reduction int) int {
 	return score
 }
 
-func settleHand(hand Hand, dealerCards []Card, dealerReduction int, jetons *int) {
+func settleHand(hand Hand, dealerCards []Card, dealerReduction int, jetons *int, doubleReward bool, bonusReward int) {
 	playerScore := calculateScore(hand.Cards)
 	dealerTotal := dealerScore(dealerCards, dealerReduction)
 	switch {
 	case hand.IsSurrender:
 		*jetons += hand.Bet / 2
+		player.ApplyRoundResult(false)
 		fmt.Printf("Abandon : vous récupérez %d jetons.\n", hand.Bet/2)
 	case playerScore > 21:
 		fmt.Println("Vous dépassez 21. Vous perdez votre mise.")
+		player.ApplyRoundResult(false)
 	case dealerTotal > 21 || playerScore > dealerTotal:
-		*jetons += hand.Bet * 2
-		fmt.Printf("Vous gagnez %d jetons !\n", hand.Bet)
+		payout := hand.Bet * 2
+		if doubleReward {
+			payout *= 2
+		}
+		*jetons += payout + bonusReward
+		player.ApplyRoundResult(true)
+		fmt.Printf("Vous gagnez %d jetons !\n", payout+bonusReward)
 	case playerScore == dealerTotal:
 		*jetons += hand.Bet
 		fmt.Println("Égalité : votre mise est remboursée.")
 	default:
 		fmt.Println("Le croupier gagne. Vous perdez votre mise.")
+		player.ApplyRoundResult(false)
+	}
+}
+
+func characterPowerName(character int) string {
+	switch character {
+	case 1:
+		return "Mentaliste"
+	case 2:
+		return "Richissime"
+	case 3:
+		return "Joueur normal"
+	default:
+		return "Inconnu"
 	}
 }
 

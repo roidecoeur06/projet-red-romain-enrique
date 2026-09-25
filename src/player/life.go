@@ -20,6 +20,10 @@ type character struct {
 }
 
 var currentFirstName = "JOUEUR"
+var currentCharacter = 0
+var powerCooldown = 0
+var currentPV = 100
+var winStreak = 0
 
 func ChooseCharacter(reader *bufio.Reader) {
 	characters := []character{
@@ -91,6 +95,10 @@ func ChooseCharacter(reader *bufio.Reader) {
 		}
 
 		currentFirstName = selectedFirstName
+		currentCharacter = choice
+		currentPV = 100
+		winStreak = 0
+		powerCooldown = 0
 		fmt.Println("Vous allez etre redirige vers le menu principal.")
 		clearTerminal()
 		return
@@ -99,6 +107,69 @@ func ChooseCharacter(reader *bufio.Reader) {
 
 func GetFirstName() string {
 	return currentFirstName
+}
+
+func GetCharacter() int {
+	return currentCharacter
+}
+
+func AdvancePowerCooldown() {
+	if powerCooldown > 0 {
+		powerCooldown--
+	}
+}
+
+func CanUsePower() bool {
+	return currentCharacter != 0 && powerCooldown == 0
+}
+
+func UsePower() bool {
+	if !CanUsePower() {
+		return false
+	}
+	powerCooldown = 10
+	return true
+}
+
+func PowerCooldown() int {
+	return powerCooldown
+}
+
+func GetPV() int {
+	return currentPV
+}
+
+func IsKO() bool {
+	return currentPV == 0
+}
+
+func ApplyRoundResult(won bool) {
+	if won {
+		winStreak++
+		gain := 10
+		if currentCharacter == 2 {
+			gain *= 2
+		}
+		currentPV += gain
+		if currentPV > 100 {
+			currentPV = 100
+		}
+		if currentCharacter == 1 && winStreak >= 5 {
+			currentPV -= 30
+			winStreak = 0
+		}
+		return
+	}
+
+	winStreak = 0
+	loss := 10
+	if currentCharacter == 2 {
+		loss *= 2
+	}
+	currentPV -= loss
+	if currentPV < 0 {
+		currentPV = 0
+	}
 }
 
 func printCharacterCharacteristics(choice int) {

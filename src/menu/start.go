@@ -63,6 +63,12 @@ func Start() {
 
 		switch choice {
 		case 1:
+			if player.GetCharacter() == 0 {
+				fmt.Println("Vous devez choisir un personnage avant d'aller à la table de blackjack.")
+				fmt.Print("Appuyez sur Entrée pour continuer...")
+				reader.ReadString('\n')
+				continue
+			}
 			table.Start(reader, &wallet.Jetons)
 		case 2:
 			coins.Start(reader)
