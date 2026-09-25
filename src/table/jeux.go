@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"blackjack/src/cards"
+	"blackjack/src/inventory"
 )
 
 type Card struct {
@@ -163,6 +164,10 @@ func Start(reader *bufio.Reader, jetons *int) {
 func playBlackjack(reader *bufio.Reader, jetons *int) {
 	fmt.Print("\033[2J\033[3J\033[H")
 	fmt.Println("========== PARTIE EN COURS ==========")
+	dealerReduction, p3Active := inventory.StartRound()
+	if dealerReduction > 0 {
+		fmt.Println("Potion P2 activee : le score du croupier est reduit de 2 points pour ce tour.")
+	}
 
 	if *jetons <= 0 {
 		fmt.Println("Vous n'avez pas de jetons ! Allez en acheter au menu des Coins.")
@@ -192,10 +197,10 @@ func playBlackjack(reader *bufio.Reader, jetons *int) {
 	settleSideBets(hand.Cards, dealerCards[0], perfectPairsBet, plusThreeBet, jetons)
 
 	playerBJ := calculateScore(hand.Cards) == 21
-	dealerBJ := calculateScore(dealerCards) == 21
+	dealerBJ := dealerScore(dealerCards, dealerReduction) == 21
 
 	if playerBJ || dealerBJ {
-		fmt.Printf("\nCROUPIER :\n%s\nTOTAL : %d\n", renderCards(dealerCards), calculateScore(dealerCards))
+		fmt.Printf("\nCROUPIER :\n%s\nTOTAL : %d\n", renderCards(dealerCards), dealerScore(dealerCards, dealerReduction))
 		if playerBJ && !dealerBJ {
 			fmt.Println("BLACKJACK NATUREL ! Vous gagnez 3:2 !")
 			*jetons += int(float64(mainBet) * 2.5)
@@ -209,7 +214,7 @@ func playBlackjack(reader *bufio.Reader, jetons *int) {
 		return
 	}
 
-	splitRequested := playHand(reader, &deck, &hand, jetons, true)
+	splitRequested := playHand(reader, &deck, &hand, jetons, true, p3Active)
 	hands := []Hand{hand}
 	if splitRequested {
 		*jetons -= hand.Bet
@@ -220,7 +225,7 @@ func playBlackjack(reader *bufio.Reader, jetons *int) {
 		fmt.Println("\nLa main est divisée en deux.")
 		for index := range hands {
 			fmt.Printf("\n--- Main %d ---\n", index+1)
-			playHand(reader, &deck, &hands[index], jetons, false)
+			playHand(reader, &deck, &hands[index], jetons, false, false)
 		}
 	}
 
@@ -232,34 +237,42 @@ func playBlackjack(reader *bufio.Reader, jetons *int) {
 		}
 	}
 	if shouldPlayDealer {
-		for calculateScore(dealerCards) < 17 {
+		for dealerScore(dealerCards, dealerReduction) < 17 {
 			dealerCards = append(dealerCards, drawCard(&deck))
 		}
 	}
 
-	fmt.Printf("\nCROUPIER :\n%s\nTOTAL : %d\n", renderCards(dealerCards), calculateScore(dealerCards))
+	fmt.Printf("\nCROUPIER :\n%s\nTOTAL : %d\n", renderCards(dealerCards), dealerScore(dealerCards, dealerReduction))
 
 	for index, currentHand := range hands {
 		fmt.Printf("\nRésultat de la main %d :\n", index+1)
-		settleHand(currentHand, dealerCards, jetons)
+		settleHand(currentHand, dealerCards, dealerReduction, jetons)
 	}
 
 	waitAndClear(reader, "Appuyez sur Entrée pour continuer...")
 }
 
-func settleHand(hand Hand, dealerCards []Card, jetons *int) {
+func dealerScore(cards []Card, reduction int) int {
+	score := calculateScore(cards) - reduction
+	if score < 0 {
+		return 0
+	}
+	return score
+}
+
+func settleHand(hand Hand, dealerCards []Card, dealerReduction int, jetons *int) {
 	playerScore := calculateScore(hand.Cards)
-	dealerScore := calculateScore(dealerCards)
+	dealerTotal := dealerScore(dealerCards, dealerReduction)
 	switch {
 	case hand.IsSurrender:
 		*jetons += hand.Bet / 2
 		fmt.Printf("Abandon : vous récupérez %d jetons.\n", hand.Bet/2)
 	case playerScore > 21:
 		fmt.Println("Vous dépassez 21. Vous perdez votre mise.")
-	case dealerScore > 21 || playerScore > dealerScore:
+	case dealerTotal > 21 || playerScore > dealerTotal:
 		*jetons += hand.Bet * 2
 		fmt.Printf("Vous gagnez %d jetons !\n", hand.Bet)
-	case playerScore == dealerScore:
+	case playerScore == dealerTotal:
 		*jetons += hand.Bet
 		fmt.Println("Égalité : votre mise est remboursée.")
 	default:
@@ -368,12 +381,18 @@ func isStraight(cards []Card) bool {
 	return values[0]+1 == values[1] && values[1]+1 == values[2]
 }
 
-func playHand(reader *bufio.Reader, deck *[]Card, hand *Hand, jetons *int, allowSplit bool) bool {
+func playHand(reader *bufio.Reader, deck *[]Card, hand *Hand, jetons *int, allowSplit bool, p3Active bool) bool {
 	for {
 		score := calculateScore(hand.Cards)
 		if score > 21 {
 			fmt.Printf("\nVotre score est de %d : vous dépassez 21.\n", score)
 			return false
+		}
+		if p3Active && score == 20 {
+			hand.Cards = append(hand.Cards, aceCard())
+			p3Active = false
+			fmt.Println("Potion P3 activee : un As est ajoute. Votre score passe a 21.")
+			continue
 		}
 
 		fmt.Printf("\nVOS CARTES :\n%s\nTOTAL : %d\n", renderCards(hand.Cards), score)
@@ -429,5 +448,18 @@ func playHand(reader *bufio.Reader, deck *[]Card, hand *Hand, jetons *int, allow
 		default:
 			fmt.Println("Action invalide.")
 		}
+	}
+}
+
+func aceCard() Card {
+	return Card{
+		Rank:  "A",
+		Suit:  "Pique",
+		Value: 11,
+		Color: "Noir",
+		Visual: cards.Card{
+			Suit:  "♠",
+			Value: "A",
+		},
 	}
 }

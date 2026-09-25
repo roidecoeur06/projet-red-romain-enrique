@@ -71,7 +71,7 @@ func Start() {
 		case 4:
 			player.ChooseCharacter(reader)
 		case 5:
-			inventory.Inventaire(reader, player.GetFirstName())
+			inventory.Inventaire(reader, wallet.Jetons)
 		case 6:
 			return
 		default:
