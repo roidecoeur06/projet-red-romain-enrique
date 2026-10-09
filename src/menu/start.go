@@ -86,6 +86,10 @@ func Start() {
 	}
 }
 
+func formatCheatSuccessMessage(amount int) string {
+	return fmt.Sprintf("\033[32mVous avez bien triché, vous remportez +%d argent !\033[0m", amount)
+}
+
 func handleCheatCommand(reader *bufio.Reader, input string) bool {
 	parts := strings.Fields(input)
 	if len(parts) == 0 || strings.ToLower(parts[0]) != "triche" {
@@ -105,7 +109,8 @@ func handleCheatCommand(reader *bufio.Reader, input string) bool {
 		return true
 	}
 
-	fmt.Printf("Triche activée : +%d argent. Appuyez sur Entrée.\n", amount)
+	fmt.Println(formatCheatSuccessMessage(amount))
+	fmt.Printf("\033[32mMontant gagné : %d\033[0m\n", amount)
 	reader.ReadString('\n')
 	return true
 }
